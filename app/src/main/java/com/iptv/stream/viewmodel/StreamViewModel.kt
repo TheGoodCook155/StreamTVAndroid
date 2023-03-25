@@ -84,7 +84,7 @@ class StreamViewModel @Inject constructor(private val repository: StreamReposito
             Log.d("stream_data", "StreamViewModel | viewModelScope.launch intent")
 
             loading.value = true
-            delay(3000)
+            delay(4000)
 
             if (intent.resolveActivity(packageManager) != null) {
                 startActivity(context, intent, null)
