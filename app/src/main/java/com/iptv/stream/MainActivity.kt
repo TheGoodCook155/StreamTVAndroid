@@ -7,7 +7,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.iptv.stream.ui.theme.StreamTVTheme
@@ -18,10 +17,23 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Card
-import androidx.compose.material.CircularProgressIndicator
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.iptv.stream.entity.Channel
 
@@ -81,27 +93,117 @@ fun ListChannels(channels: List<Channel>, loading: Boolean, channelCallback: (St
 
     Log.d("stream_data", "ListChannels: starts: ")
 
+    val searchChannel = remember {
+        mutableStateOf("")
+    }
+
+
     if (loading == true){
 
         CircularProgressIndicator()
 
     }else{
 
-        LazyColumn(modifier = Modifier.fillMaxSize()){
-            items(channels){ channel ->
+        Column {
 
-                ChannelView(channel){
-                    Log.d("channelUrlCallback", "ListChannels received: ${it}")
-
-                    channelCallback(it)
-                }
-
+            SearchChannel(searchChannel){
+                searchChannel.value = it
             }
+
+            LazyColumn(modifier = Modifier.fillMaxSize()){
+
+                items(if (searchChannel.value == "") channels else channels.filter {channel ->
+                    channel.channelName.contains(searchChannel.value, ignoreCase = true)
+                }){ channel ->
+
+                    ChannelView(channel){
+                        Log.d("channelUrlCallback", "ListChannels received: ${it}")
+
+                        channelCallback(it)
+                    }
+
+                }
+            }
+
         }
 
     }
 
     Log.d("stream_data", "ListChannels: ends: ")
+
+
+}
+
+//@Preview
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+fun SearchChannel(searchChannel: MutableState<String>, channelCallback: (String) -> Unit) {
+
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusRequester = remember {
+        FocusRequester()
+    }
+
+    val hiddenTextField = remember {
+        mutableStateOf(true)
+    }
+
+    Row(modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.End) {
+
+        if(hiddenTextField.value == false) {
+
+            OutlinedTextField(value = searchChannel.value, onValueChange = {
+                searchChannel.value = it
+            },
+                    modifier = Modifier
+                        .padding(5.dp)
+                        .weight(8f),
+            trailingIcon = {
+
+                if (searchChannel.value.isNotBlank()){
+
+                    Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear icon",
+                        modifier = Modifier.width(50.dp).height(50.dp).padding(10.dp).clickable {
+                            searchChannel.value = ""
+                        })
+
+                }
+
+
+            }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions (
+                    onDone = {
+                        keyboardController?.hide()
+                        channelCallback(searchChannel.value)
+                    })
+            )
+            //TX ends
+
+        }
+
+        IconButton(onClick = {
+            hiddenTextField.value = !hiddenTextField.value
+
+            keyboardController?.show()
+            focusRequester.requestFocus()
+
+            if (!hiddenTextField.value && searchChannel.value != ""){
+                channelCallback(searchChannel.value)
+                searchChannel.value = ""
+            }
+
+        }) {
+            Icon(imageVector = Icons.Default.Search, contentDescription = "Search Icon",
+                modifier = Modifier
+                    .width(50.dp)
+                    .height(50.dp)
+                    .weight(2f)
+                    .focusRequester(focusRequester))
+        }
+
+    }
 
 
 }
