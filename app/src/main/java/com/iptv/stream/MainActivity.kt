@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
@@ -35,38 +36,40 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.iptv.stream.data.Data
+import com.iptv.stream.data.DataWrapper
 import com.iptv.stream.entity.Channel
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    @SuppressLint("SuspiciousIndentation")
+    @SuppressLint("SuspiciousIndentation", "CoroutineCreationDuringComposition")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+
         setContent {
             StreamTVTheme {
 
-                Log.d("stream_data", "onCreate: starts: ")
+                Log.d("stream_data", "onCreate: starts: ===================")
 
                 val viewModel: StreamViewModel by viewModels()
                 val context = LocalContext.current
                 val channels = viewModel.channels
                 val fileLocation = viewModel.fileLocation
                 val file = viewModel.file
-                val loading = remember {
-                    mutableStateOf(viewModel.loading)
-                }
+                val loading = viewModel.loading
 
                 Log.d("stream_data", "onCreate: fileExists(): ${file.exists()}")
-
-                Log.d("stream_data", "onCreate: channels: ${channels}")
 
                 val channelUrl = remember {
                     mutableStateOf("")
                 }
 
-
-                ListChannels(channels = channels, loading.value.value){
+                ListChannels(channels = channels, loading = loading.value){
                     Log.d("channelUrlCallback", "mainActivity received: ${it}")
                     channelUrl.value = it
 
@@ -76,8 +79,7 @@ class MainActivity : ComponentActivity() {
                 }
 
                 Log.d("channelUrlCallback", "mainActivity channelURL: ${channelUrl.value}")
-                Log.d("stream_data", "onCreate: ends: ")
-
+                Log.d("stream_data", "onCreate: ends: ===================")
 
             }
         }
@@ -91,7 +93,9 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun ListChannels(channels: List<Channel>, loading: Boolean, channelCallback: (String) -> Unit){
 
-    Log.d("stream_data", "ListChannels: starts: ")
+    Log.d("stream_data", "ListChannels: starts: ===================")
+    Log.d("stream_data", "ListChannels: loading: ${loading}")
+
 
     val searchChannel = remember {
         mutableStateOf("")
@@ -127,9 +131,10 @@ fun ListChannels(channels: List<Channel>, loading: Boolean, channelCallback: (St
 
         }
 
+
     }
 
-    Log.d("stream_data", "ListChannels: ends: ")
+    Log.d("stream_data", "ListChannels: ends: ===================")
 
 
 }
@@ -165,9 +170,13 @@ fun SearchChannel(searchChannel: MutableState<String>, channelCallback: (String)
                 if (searchChannel.value.isNotBlank()){
 
                     Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear icon",
-                        modifier = Modifier.width(50.dp).height(50.dp).padding(10.dp).clickable {
-                            searchChannel.value = ""
-                        })
+                        modifier = Modifier
+                            .width(50.dp)
+                            .height(50.dp)
+                            .padding(10.dp)
+                            .clickable {
+                                searchChannel.value = ""
+                            })
 
                 }
 
@@ -211,7 +220,7 @@ fun SearchChannel(searchChannel: MutableState<String>, channelCallback: (String)
 
 @Composable
 fun ChannelView(channel: Channel, urlCallback: (String) -> Unit) {
-    Log.d("stream_data", "ChannelView: starts: ")
+//    Log.d("stream_data", "ChannelView: starts: ")
 
 
     Card(modifier = Modifier
@@ -235,7 +244,7 @@ fun ChannelView(channel: Channel, urlCallback: (String) -> Unit) {
         
     }
 
-    Log.d("stream_data", "ChannelView: ends: ")
+//    Log.d("stream_data", "ChannelView: ends: ")
 
 }
 
