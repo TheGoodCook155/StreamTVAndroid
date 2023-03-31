@@ -1,18 +1,21 @@
 package com.iptv.stream.network
 import android.annotation.SuppressLint
 import android.util.Log
+import androidx.lifecycle.ViewModelProvider.NewInstanceFactory.Companion.instance
 import java.io.File
 import java.io.InputStream
 import java.net.URL
 
 
-class SaveStream{
-        ///storage/emulated/0/Android/data/com.iptv.divatv/files/Stream/stream.ts
+object SaveStream {
+
+    var file: File = File("")
 
       @SuppressLint("SuspiciousIndentation")
-      suspend  fun storeStream(channelUrl: String, fileArg: File) {
+      suspend  fun storeStream(channelUrl: String, fileArg: File, fileSizeCallBack: (Int) -> Unit) {
 
-          Log.d("stream_data", "SaveStream | storeStream: fileArg Path: ${fileArg.absolutePath}")
+            var fileSize = 0
+
 
             val url = URL(channelUrl)
 
@@ -20,18 +23,17 @@ class SaveStream{
 
             val file = File(fileArg, "stream.ts")
 
-          Log.d("stream_data", "SaveStream | storeStream: fileExists(): ${file.exists()}")
-
         if (file.exists()){
             file.delete()
-            Log.d("stream_data", "SaveStream | storeStream: fileDeleted() -> Exists: ${file.exists()}")
 
         }
 
         if (!file.exists()){
             Log.d("stream_data", "SaveStream | storeStream: fileExists(): ${file.exists()}, CREATING NEW")
 
-            file.createNewFile()
+            file.createNewFile().let {
+                this.file = file
+            }
         }
 
 
@@ -41,12 +43,24 @@ class SaveStream{
                         var bytesRead: Int
                         while (input.read(buffer).also { bytesRead = it } != -1) {
                             output.write(buffer, 0, bytesRead)
-//                            Log.d("Bytes read", "Bytes read: $bytesRead |")
+                            fileSize = returnFileSizeToInt()
+                            if (fileSize > 5) {
+                                fileSizeCallBack(fileSize)
+                            }
                         }
                         output.flush()
                     }
                 }
 
-            }
+    }
+
+    fun returnSaveStreamInstance(): SaveStream{
+        return SaveStream
+    }
+    fun returnFileSizeToInt(): Int{
+        val fileLengthInBytes = file.length()
+        val fileLengthInMB = fileLengthInBytes.toDouble() / (1024 * 1024)
+        return fileLengthInMB.toInt()
+    }
 
 }
