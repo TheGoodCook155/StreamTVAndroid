@@ -4,9 +4,9 @@ import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -25,7 +25,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.focus.FocusRequester
@@ -34,14 +33,8 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.iptv.stream.data.Data
-import com.iptv.stream.data.DataWrapper
 import com.iptv.stream.entity.Channel
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
 
 @AndroidEntryPoint
@@ -119,13 +112,11 @@ fun ListChannels(channels: List<Channel>, loading: Boolean, channelCallback: (St
                 items(if (searchChannel.value == "") channels else channels.filter {channel ->
                     channel.channelName.contains(searchChannel.value, ignoreCase = true)
                 }){ channel ->
-
-                    ChannelView(channel){
-                        Log.d("channelUrlCallback", "ListChannels received: ${it}")
-
-                        channelCallback(it)
-                    }
-
+                    
+                        ChannelView(channel){
+                            Log.d("channelUrlCallback", "ListChannels received: ${it}")
+                            channelCallback(it)
+                        }
                 }
             }
 
@@ -153,46 +144,81 @@ fun SearchChannel(searchChannel: MutableState<String>, channelCallback: (String)
         mutableStateOf(true)
     }
 
+    val textFieldWidth = remember {
+        Animatable(initialValue = 0f)
+    }
+
+    LaunchedEffect(hiddenTextField.value) {
+
+        if (hiddenTextField.value){
+
+            textFieldWidth.animateTo(
+                0f,
+                animationSpec = tween(
+                    durationMillis = 400,
+                    easing = FastOutSlowInEasing
+                )
+            )
+        }
+
+        if (!hiddenTextField.value){
+
+            textFieldWidth.animateTo(
+                300f,
+                animationSpec = tween(
+                    durationMillis = 400,
+                    easing = FastOutSlowInEasing
+                )
+            )
+
+        }
+
+    }
+
+
     Row(modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.End) {
 
-        if(hiddenTextField.value == false) {
 
+        Box(modifier = Modifier
+            .width(textFieldWidth.value.dp)
+        ) {
             OutlinedTextField(value = searchChannel.value, onValueChange = {
                 searchChannel.value = it
             },
-                    modifier = Modifier
-                        .padding(5.dp)
-                        .weight(8f),
-            trailingIcon = {
+                modifier = Modifier
+                    .padding(5.dp),
+                trailingIcon = {
 
-                if (searchChannel.value.isNotBlank()){
+                    if (searchChannel.value.isNotBlank()){
 
-                    Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear icon",
-                        modifier = Modifier
-                            .width(50.dp)
-                            .height(50.dp)
-                            .padding(10.dp)
-                            .clickable {
-                                searchChannel.value = ""
-                            })
+                        Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear icon",
+                            modifier = Modifier
+                                .width(50.dp)
+                                .height(50.dp)
+                                .padding(10.dp)
+                                .clickable {
+                                    searchChannel.value = ""
+                                })
 
-                }
+                    }
 
-
-            }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Done),
+                }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions (
                     onDone = {
                         keyboardController?.hide()
                         channelCallback(searchChannel.value)
                     })
             )
-            //TX ends
-
         }
 
+            //TX ends
+
+
         IconButton(onClick = {
+            Log.d("textFieldWidth", "SearchChannel: entering onClick - textFieldWidth: ${textFieldWidth.value}")
+
             hiddenTextField.value = !hiddenTextField.value
 
             keyboardController?.show()
@@ -202,6 +228,8 @@ fun SearchChannel(searchChannel: MutableState<String>, channelCallback: (String)
                 channelCallback(searchChannel.value)
                 searchChannel.value = ""
             }
+
+            Log.d("textFieldWidth", "SearchChannel: exiting onClick textFieldWidth: ${textFieldWidth.value}")
 
         }) {
             Icon(imageVector = Icons.Default.Search, contentDescription = "Search Icon",
@@ -213,7 +241,6 @@ fun SearchChannel(searchChannel: MutableState<String>, channelCallback: (String)
         }
 
     }
-
 
 }
 
